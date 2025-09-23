@@ -2,6 +2,42 @@
 
 This demo shows how to serve models using [Nvidia Dynamo](https://github.com/ai-dynamo/dynamo) and [SkyPilot](https://docs.skypilot.co/en/latest/docs/index.html).
 
+## What is Nvidia Dynamo?
+
+NVIDIA Dynamo is a high-performance inference framework designed for serving generative AI and reasoning models in multi-node distributed environments. Built in Rust for performance and Python for extensibility, Dynamo solves the computational challenges of large language models that exceed single GPU capabilities.
+
+### Core Features
+- **Disaggregated Prefill & Decode**: Separates inference phases for optimal resource utilization
+- **Dynamic GPU Scheduling**: Intelligent workload distribution across available GPUs
+- **LLM-Aware Request Routing**: Smart routing based on model characteristics and cache states
+- **Accelerated Data Transfer**: High-performance data movement between nodes
+- **KV Cache Offloading**: Multi-tiered memory management for efficient cache utilization
+
+### Key Benefits
+- **Unified Multi-GPU Experience**: Makes distributed GPU inference feel like "one accelerator"
+- **Maximum GPU Throughput**: Optimizes performance across fluctuating computational demands
+- **Tensor Parallelism**: Enables models to span multiple GPUs and servers seamlessly
+- **Multi-Engine Support**: Works with TensorRT-LLM, vLLM, SGLang, and other backends
+- **Orchestration Excellence**: Bridges the "orchestration gap" in multi-GPU/multi-node environments
+
+## Features Enabled in These Examples
+
+### Single-Node Example (`nvidia-dynamo.sky.yaml`)
+- ✅ **SGLang Backend**: High-performance inference engine
+- ✅ **OpenAI-Compatible API**: Drop-in replacement for OpenAI endpoints
+- ✅ **Basic Load Balancing**: Round-robin request distribution
+- ✅ **Auto-Discovery**: Dynamic worker registration
+
+### Multi-Node Example (`nvidia-dynamo-multinode.sky.yaml`)
+- ✅ **KV-Aware Routing**: Intelligent cache-based request routing (`--router-mode kv`)
+- ✅ **Multi-Node Distribution**: 2 nodes × 8 H100 GPUs (16 total GPUs)
+- ✅ **Data Parallel Attention**: DP=2 across nodes (`--enable-dp-attention`)
+- ✅ **Tensor Parallelism**: TP=8 per node for large model support
+- ✅ **Disaggregated Transfer**: NIXL backend for KV cache transfers
+
+**Model**: `Qwen/Qwen3-8B` (8B parameter reasoning model)
+**Architecture**: 2 nodes, each with 8×H100 GPUs, TP=8, DP=2
+
 ## Launch Cluster
 
 ```bash
@@ -104,3 +140,15 @@ Example output:
   }
 }
 ```
+
+## Verifying KV-Aware Routing
+
+Check logs for these indicators:
+
+```
+INFO dynamo_llm::kv_router: KV Routing initialized
+INFO dynamo_llm::kv_router::scheduler: Formula for 7587889683284143912 with 0 cached blocks: 0.875 = 1.0 * prefill_blocks + decode_blocks = 1.0 * 0.875 + 0.000
+INFO dynamo_llm::kv_router::scheduler: Selected worker: 7587889683284143912, logit: 0.875, cached blocks: 0, total blocks: 109815
+```
+
+The routing formula shows worker selection based on KV cache hits and load balancing.
